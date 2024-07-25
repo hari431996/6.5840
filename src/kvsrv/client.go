@@ -21,6 +21,7 @@ func MakeClerk(server *labrpc.ClientEnd) *Clerk {
 	ck := new(Clerk)
 	ck.server = server
 	// You'll have to add code here.
+	
 	return ck
 }
 
@@ -37,7 +38,10 @@ func MakeClerk(server *labrpc.ClientEnd) *Clerk {
 func (ck *Clerk) Get(key string) string {
 
 	// You will have to modify this function.
-	return ""
+	getArgs := GetArgs{key}
+	getReply := GetReply{}
+	ck.server.Call("KVServer.Get",getArgs,&getReply)
+	return getReply.Value
 }
 
 // shared by Put and Append.

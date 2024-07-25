@@ -67,13 +67,13 @@ func (cfg *config) makeClient() *Clerk {
 
 	// a fresh ClientEnds
 	endname := randstring(20)
-	end := cfg.net.MakeEnd(endname)
-	cfg.net.Connect(endname, SERVERID)
+	end := cfg.net.MakeEnd(endname) // this is a client end object.
+	cfg.net.Connect(endname, SERVERID) // mapping client with server. 
 
-	ck := MakeClerk(end)
+	ck := MakeClerk(end) // This is in client. 
 	cfg.clerks[ck] = endname
 	cfg.nextClientId++
-	cfg.ConnectClientUnlocked(ck)
+	cfg.ConnectClientUnlocked(ck) // enabling the client.
 	return ck
 }
 
@@ -103,12 +103,14 @@ func (cfg *config) ConnectClient(ck *Clerk) {
 }
 
 func (cfg *config) StartServer() {
-	cfg.kvserver = StartKVServer()
+	cfg.kvserver = StartKVServer() // returns kv object.
+	
 
-	kvsvc := labrpc.MakeService(cfg.kvserver)
-	srv := labrpc.MakeServer()
-	srv.AddService(kvsvc)
-	cfg.net.AddServer(0, srv)
+	kvsvc := labrpc.MakeService(cfg.kvserver) // basically registers all the methods in kvserver object.
+
+	srv := labrpc.MakeServer() // create server struct object.
+	srv.AddService(kvsvc)  // Add the kvsvc in srv. 
+	cfg.net.AddServer(0, srv) // Add server struct object to network.
 }
 
 var ncpu_once sync.Once
