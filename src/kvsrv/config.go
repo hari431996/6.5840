@@ -107,7 +107,7 @@ func (cfg *config) StartServer() {
 	
 
 	kvsvc := labrpc.MakeService(cfg.kvserver) // basically registers all the methods in kvserver object.
-
+	
 	srv := labrpc.MakeServer() // create server struct object.
 	srv.AddService(kvsvc)  // Add the kvsvc in srv. 
 	cfg.net.AddServer(0, srv) // Add server struct object to network.

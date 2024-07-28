@@ -316,21 +316,25 @@ func GenericTest(t *testing.T, nclients int, unreliable bool, randomkeys bool) {
 	cfg.end()
 }
 
+//pass
 // Test one client
 func TestBasic2(t *testing.T) {
 	GenericTest(t, 1, false, false)
 }
 
+//pass
 // Test many clients
 func TestConcurrent2(t *testing.T) {
 	GenericTest(t, 5, false, false)
 }
 
+// fail 
 // Test: unreliable net, many clients
 func TestUnreliable2(t *testing.T) {
 	GenericTest(t, 5, true, false)
 }
 
+// fail.
 // Test: unreliable net, many clients, one key
 func TestUnreliableOneKey2(t *testing.T) {
 	cfg := make_config(t, true)
@@ -372,6 +376,7 @@ const (
 	MiB = 1 << 20
 )
 
+// pass
 func TestMemGet2(t *testing.T) {
 	const MEM = 100 // in MiB
 
@@ -407,6 +412,7 @@ func TestMemGet2(t *testing.T) {
 	cfg.end()
 }
 
+// pass
 func TestMemPut2(t *testing.T) {
 	const MEM = 100 // in MiB
 
@@ -432,6 +438,7 @@ func TestMemPut2(t *testing.T) {
 	cfg.end()
 }
 
+// pass
 func TestMemAppend2(t *testing.T) {
 	const MEM = 100 // in MiB
 
@@ -458,6 +465,7 @@ func TestMemAppend2(t *testing.T) {
 	cfg.end()
 }
 
+// This is in a deadlock.
 func TestMemPutMany2(t *testing.T) {
 	const (
 		NPUT = 1_000_000
@@ -502,6 +510,7 @@ func TestMemPutMany2(t *testing.T) {
 	cfg.end()
 }
 
+// In a deadlock. 
 func TestMemGetMany2(t *testing.T) {
 	const (
 		NCLIENT = 100_000

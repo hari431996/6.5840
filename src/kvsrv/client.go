@@ -40,7 +40,7 @@ func (ck *Clerk) Get(key string) string {
 	// You will have to modify this function.
 	getArgs := GetArgs{key}
 	getReply := GetReply{}
-	ck.server.Call("KVServer.Get",getArgs,&getReply)
+	ck.server.Call("KVServer.Get",&getArgs,&getReply)
 	return getReply.Value
 }
 
@@ -54,7 +54,15 @@ func (ck *Clerk) Get(key string) string {
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) PutAppend(key string, value string, op string) string {
 	// You will have to modify this function.
-	return ""
+	putArgs := PutAppendArgs{key, value}
+	putReply := PutAppendReply{}
+
+	if op == "Put"{
+		ck.server.Call("KVServer.Put", &putArgs, &putReply)
+	}else{
+		ck.server.Call("KVServer.Append", &putArgs, &putReply)
+	}
+	return putReply.Value
 }
 
 func (ck *Clerk) Put(key string, value string) {

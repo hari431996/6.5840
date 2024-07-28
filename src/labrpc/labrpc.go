@@ -1,4 +1,6 @@
 package labrpc
+import "fmt"
+
 
 //
 // channel-based RPC, for 6.5840 labs.
@@ -59,12 +61,13 @@ import "math/rand"
 import "time"
 import "sync/atomic"
 
+// This is the struct used to send request from client.
 type reqMsg struct {
 	endname  interface{} // name of sending ClientEnd
 	svcMeth  string      // e.g. "Raft.AppendEntries"
 	argsType reflect.Type
 	args     []byte
-	replyCh  chan replyMsg
+	replyCh  chan replyMsg  // reply channel.
 }
 
 type replyMsg struct {
@@ -87,7 +90,8 @@ func (e *ClientEnd) Call(svcMeth string, args interface{}, reply interface{}) bo
 	req.svcMeth = svcMeth
 	req.argsType = reflect.TypeOf(args)
 	req.replyCh = make(chan replyMsg)
-
+	
+	// byte encode arguments-args.
 	qb := new(bytes.Buffer)
 	qe := labgob.NewEncoder(qb)
 	if err := qe.Encode(args); err != nil {
@@ -116,12 +120,13 @@ func (e *ClientEnd) Call(svcMeth string, args interface{}, reply interface{}) bo
 		if err := rd.Decode(reply); err != nil {
 			log.Fatalf("ClientEnd.Call(): decode reply: %v\n", err)
 		}
+		
 		return true
 	} else {
 		return false
 	}
 }
-
+// This is network struct intialised. 
 type Network struct {
 	mu             sync.Mutex
 	reliable       bool
@@ -137,6 +142,7 @@ type Network struct {
 	bytes          int64         // total bytes send, for statistics
 }
 
+// create network struct here. 
 func MakeNetwork() *Network {
 	rn := &Network{}
 	rn.reliable = true
@@ -147,11 +153,11 @@ func MakeNetwork() *Network {
 	rn.endCh = make(chan reqMsg)
 	rn.done = make(chan struct{})
 
-	// single goroutine to handle all ClientEnd.Call()s
+	// single goroutine to handle all ClientEnd.Call()
 	go func() {
 		for {
 			select {
-			case xreq := <-rn.endCh:
+			case xreq := <-rn.endCh:  // client channel sends request here.
 				atomic.AddInt32(&rn.count, 1)
 				atomic.AddInt64(&rn.bytes, int64(len(xreq.args)))
 				go rn.processReq(xreq)
@@ -218,6 +224,7 @@ func (rn *Network) isServerDead(endname interface{}, servername interface{}, ser
 func (rn *Network) processReq(req reqMsg) {
 	enabled, servername, server, reliable, longreordering := rn.readEndnameInfo(req.endname)
 
+	
 	if enabled && servername != nil && server != nil {
 		if reliable == false {
 			// short delay
@@ -238,6 +245,7 @@ func (rn *Network) processReq(req reqMsg) {
 		ech := make(chan replyMsg)
 		go func() {
 			r := server.dispatch(req)
+			
 			ech <- r
 		}()
 
@@ -314,17 +322,18 @@ func (rn *Network) MakeEnd(endname interface{}) *ClientEnd {
 	rn.mu.Lock()
 	defer rn.mu.Unlock()
 
+	// check if make end already exists. 
 	if _, ok := rn.ends[endname]; ok {
 		log.Fatalf("MakeEnd: %v already exists\n", endname)
 	}
 
 	e := &ClientEnd{}
 	e.endname = endname
-	e.ch = rn.endCh
-	e.done = rn.done
-	rn.ends[endname] = e
-	rn.enabled[endname] = false
-	rn.connections[endname] = nil
+	e.ch = rn.endCh  // This is the channel used by client to send args to processreq.
+	e.done = rn.done // This is done channel used to close accepting clients.
+	rn.ends[endname] = e  // storing clients here. 
+	rn.enabled[endname] = false // enable/disable client.
+	rn.connections[endname] = nil // no server connection yet. 
 
 	return e
 }
@@ -412,6 +421,7 @@ func (rs *Server) AddService(svc *Service) {
 	rs.services[svc.name] = svc
 }
 
+// call comes from processReq
 func (rs *Server) dispatch(req reqMsg) replyMsg {
 	rs.mu.Lock()
 
@@ -422,7 +432,9 @@ func (rs *Server) dispatch(req reqMsg) replyMsg {
 	serviceName := req.svcMeth[:dot]
 	methodName := req.svcMeth[dot+1:]
 
+	
 	service, ok := rs.services[serviceName]
+	
 
 	rs.mu.Unlock()
 
@@ -454,6 +466,9 @@ type Service struct {
 	methods map[string]reflect.Method
 }
 
+// This is to register the stubs.
+// Buy passing the main struct on which methods are defined. 
+// Service is just registering a struct object. 
 func MakeService(rcvr interface{}) *Service {
 	svc := &Service{}
 	svc.typ = reflect.TypeOf(rcvr)
@@ -461,10 +476,15 @@ func MakeService(rcvr interface{}) *Service {
 	svc.name = reflect.Indirect(svc.rcvr).Type().Name()
 	svc.methods = map[string]reflect.Method{}
 
+
+
 	for m := 0; m < svc.typ.NumMethod(); m++ {
 		method := svc.typ.Method(m)
 		mtype := method.Type
 		mname := method.Name
+		
+
+	
 
 		//fmt.Printf("%v pp %v ni %v 1k %v 2k %v no %v\n",
 		//	mname, method.PkgPath, mtype.NumIn(), mtype.In(1).Kind(), mtype.In(2).Kind(), mtype.NumOut())
@@ -475,16 +495,23 @@ func MakeService(rcvr interface{}) *Service {
 			mtype.In(2).Kind() != reflect.Ptr ||
 			mtype.NumOut() != 0 {
 			// the method is not suitable for a handler
-			//fmt.Printf("bad method: %v\n", mname)
+			fmt.Printf("bad method: %v\n", mname)
 		} else {
 			// the method looks like a handler
+			fmt.Println(mname)
+
 			svc.methods[mname] = method
 		}
 	}
 
+	
+
+
+
 	return svc
 }
 
+// call comes here from server.dispatch()
 func (svc *Service) dispatch(methname string, req reqMsg) replyMsg {
 	if method, ok := svc.methods[methname]; ok {
 		// prepare space into which to read the argument.
@@ -503,6 +530,7 @@ func (svc *Service) dispatch(methname string, req reqMsg) replyMsg {
 
 		// call the method.
 		function := method.Func
+		fmt.Println(function)
 		function.Call([]reflect.Value{svc.rcvr, args.Elem(), replyv})
 
 		// encode the reply.

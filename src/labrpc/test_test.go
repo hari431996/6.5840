@@ -68,25 +68,26 @@ func (js *JunkServer) Handler7(args int, reply *string) {
 
 func TestBasic(t *testing.T) {
 	runtime.GOMAXPROCS(4)
-
-	rn := MakeNetwork()
+	
+	rn := MakeNetwork() // processRequest is also done here.
 	defer rn.Cleanup()
 
-	e := rn.MakeEnd("end1-99")
+	e := rn.MakeEnd("end1-99") // return a client end object
 
-	js := &JunkServer{}
-	svc := MakeService(js)
+	js := &JunkServer{} // Passing the values here.
+	svc := MakeService(js) // passsing a struct and its methods.
 
-	rs := MakeServer()
-	rs.AddService(svc)
-	rn.AddServer("server99", rs)
+	rs := MakeServer() // creating a server here 
+	rs.AddService(svc) // adding services to server
+	rn.AddServer("server99", rs) // add the server 
 
-	rn.Connect("end1-99", "server99")
+	rn.Connect("end1-99", "server99") // mapping a connection between client and server
 	rn.Enable("end1-99", true)
 
 	{
 		reply := ""
-		e.Call("JunkServer.Handler2", 111, &reply)
+		r := e.Call("JunkServer.Handler2", 111, &reply)
+		fmt.Println(r)
 		if reply != "handler2-111" {
 			t.Fatalf("wrong reply from Handler2")
 		}
